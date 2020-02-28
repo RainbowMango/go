@@ -120,7 +120,7 @@ type Version struct {
 	// to represent the decision to take no version of a given module.
 	// Third, filesystem paths found in "replace" directives are
 	// represented by a path with an empty version.
-	Version string `json:",omitempty"`
+	Version string `json:",omitempty"` // 取值可能是`v1.1.1/go.mod`，或`v1.1.1`
 }
 
 // String returns a representation of the Version suitable for logging

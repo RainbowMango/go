@@ -34,7 +34,7 @@ var downloadCache par.Cache
 // local download cache and returns the name of the directory
 // corresponding to the root of the module's file tree.
 func Download(mod module.Version) (dir string, err error) {
-	if PkgMod == "" {
+	if PkgMod == "" { // PkgMod 理论上应该是 $GOPATH/pkg/mod。如果为空说明哪里有错误。
 		// Do not download to current directory.
 		return "", fmt.Errorf("missing modfetch.PkgMod")
 	}
@@ -45,7 +45,7 @@ func Download(mod module.Version) (dir string, err error) {
 		err error
 	}
 	c := downloadCache.Do(mod, func() interface{} {
-		dir, err := DownloadDir(mod)
+		dir, err := DownloadDir(mod) // $GOPATH/pkg/mod/module@version. e.g. /root/go/pkg/mod/github.com/uudashr/gocognit@v1.0.1
 		if err != nil {
 			return cached{"", err}
 		}
@@ -330,7 +330,7 @@ func initGoSum() (bool, error) {
 	if GoSumFile == "" {
 		return false, nil
 	}
-	if goSum.m != nil {
+	if goSum.m != nil { // goSum.m只在本函数内初始化（分配map空间），如果发现map非空，则直接返回，不必重复初始化。
 		return true, nil
 	}
 
@@ -372,10 +372,10 @@ func readGoSum(dst map[module.Version][]string, file string, data []byte) error 
 		var line []byte
 		lineno++
 		i := bytes.IndexByte(data, '\n')
-		if i < 0 {
+		if i < 0 { // 如果没有换行符，说明是最后一行。将data置为nil。TODO(RainbowMango): 此处if 和 else 位置应该倒换一下，让if匹配成功概率更高一点，理论上可以提升读取效率。
 			line, data = data, nil
 		} else {
-			line, data = data[:i], data[i+1:]
+			line, data = data[:i], data[i+1:] // 使用data[:i]获取单行数据，并使用data[i+1:]将data重新指向后面的数据。
 		}
 		f := strings.Fields(string(line))
 		if len(f) == 0 {
@@ -456,7 +456,7 @@ func checkModSum(mod module.Version, h string) error {
 	if err != nil {
 		return err
 	}
-	done := inited && haveModSumLocked(mod, h)
+	done := inited && haveModSumLocked(mod, h) // 如果goSum.m中已有hash值，但若不等于h，会校验失败
 	goSum.mu.Unlock()
 
 	if done {
@@ -484,7 +484,7 @@ func checkModSum(mod module.Version, h string) error {
 // haveModSumLocked reports whether the pair mod,h is already listed in go.sum.
 // If it finds a conflicting pair instead, it calls base.Fatalf.
 // goSum.mu must be locked.
-func haveModSumLocked(mod module.Version, h string) bool {
+func haveModSumLocked(mod module.Version, h string) bool { // 简单的功能函数：只用来检查`go.sum`结构体中是否已包含了期望的hash值。
 	goSum.checked[modSum{mod, h}] = true
 	for _, vh := range goSum.m[mod] {
 		if h == vh {
@@ -499,7 +499,7 @@ func haveModSumLocked(mod module.Version, h string) bool {
 
 // addModSumLocked adds the pair mod,h to go.sum.
 // goSum.mu must be locked.
-func addModSumLocked(mod module.Version, h string) {
+func addModSumLocked(mod module.Version, h string) { // 简单的功能函数，只是向`go.sum`结构体中增加新的hash值。
 	if haveModSumLocked(mod, h) {
 		return
 	}
@@ -513,7 +513,7 @@ func addModSumLocked(mod module.Version, h string) {
 // checkSumDB checks the mod, h pair against the Go checksum database.
 // It calls base.Fatalf if the hash is to be rejected.
 func checkSumDB(mod module.Version, h string) error {
-	db, lines, err := lookupSumDB(mod)
+	db, lines, err := lookupSumDB(mod) // 从 GOSUMDB 配置的地址中获取
 	if err != nil {
 		return module.VersionError(mod, fmt.Errorf("verifying module: %v", err))
 	}
@@ -620,7 +620,7 @@ func WriteGoSum() {
 }
 
 // TrimGoSum trims go.sum to contain only the modules for which keep[m] is true.
-func TrimGoSum(keep map[module.Version]bool) {
+func TrimGoSum(keep map[module.Version]bool) { // go.sum文件中只保留keep中包含的module，其余的删除，只在缓存中删除，暂未写入文件。
 	goSum.mu.Lock()
 	defer goSum.mu.Unlock()
 	inited, err := initGoSum()
@@ -635,8 +635,8 @@ func TrimGoSum(keep map[module.Version]bool) {
 		// If we're keeping x@v we also keep x@v/go.mod.
 		// Map x@v/go.mod back to x@v for the keep lookup.
 		noGoMod := module.Version{Path: m.Path, Version: strings.TrimSuffix(m.Version, "/go.mod")}
-		if !keep[m] && !keep[noGoMod] {
-			delete(goSum.m, m)
+		if !keep[m] && !keep[noGoMod] { // 每个module在go.sum中会有两条记录，相应的会有两个module.Version。此处确保两个都保留下来。
+			delete(goSum.m, m) // 遍历Go map时删除元素仍然是安全的。这在Effective Go中有例子https://golang.org/doc/effective_go.html#for。
 			goSum.dirty = true
 			goSum.overwrite = true
 		}

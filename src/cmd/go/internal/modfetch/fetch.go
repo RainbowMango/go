@@ -728,11 +728,11 @@ go.sum is wrong or the downloaded code is wrong. Usually go.sum is right:
 you want to use the same code you used yesterday.
 
 If a downloaded module is not yet included in go.sum and it is a publicly
-available module, the go command consults the Go checksum database to fetch
+available module, the go command consults the Go checksum database to fetch	
 the expected go.sum lines. If the downloaded code does not match those
 lines, the go command reports the mismatch and exits. Note that the
-database is not consulted for module versions already listed in go.sum.
-
+database is not consulted for module versions already listed in go.sum.      // 如果一个module还没有添加到go.sum文件中，那么在添加前go命令会查询校验和数据库。
+																			 // 如果module已经存在于go.sum文件中，则不会再查询校验和数据库。
 If a go.sum mismatch is reported, it is always worth investigating why
 the code downloaded today differs from what was downloaded yesterday.
 

@@ -246,15 +246,15 @@ func downloadZip(mod module.Version, zipfile string) (err error) {
 	}
 
 	// Hash the zip file and check the sum before renaming to the final location.
-	hash, err := dirhash.HashZip(f.Name(), dirhash.DefaultHash)
+	hash, err := dirhash.HashZip(f.Name(), dirhash.DefaultHash) // 给下载的zip包计算hash值
 	if err != nil {
 		return err
 	}
-	if err := checkModSum(mod, hash); err != nil {
+	if err := checkModSum(mod, hash); err != nil { // zip包的hash值与go.sum中的比较是否一致（如果go.sum中没有则更新go.sum）。
 		return err
 	}
 
-	if err := renameio.WriteFile(zipfile+"hash", []byte(hash), 0666); err != nil {
+	if err := renameio.WriteFile(zipfile+"hash", []byte(hash), 0666); err != nil { // 将zip包的hash值写入.ziphash
 		return err
 	}
 	if err := os.Rename(f.Name(), zipfile); err != nil {
@@ -440,7 +440,7 @@ func checkGoMod(path, version string, data []byte) error {
 		return &module.ModuleError{Path: path, Version: version, Err: fmt.Errorf("verifying go.mod: %v", err)}
 	}
 
-	return checkModSum(module.Version{Path: path, Version: version + "/go.mod"}, h)
+	return checkModSum(module.Version{Path: path, Version: version + "/go.mod"}, h) // 检查`go.sum`文件中是否包含vxxxx/go.mod 的hash记录
 }
 
 // checkModSum checks that the recorded checksum for mod is h.
@@ -704,12 +704,12 @@ The only defined algorithm prefix is "h1:", which uses SHA-256.
 Module authentication failures
 
 The go command maintains a cache of downloaded packages and computes
-and records the cryptographic checksum of each package at download time.
-In normal operation, the go command checks the main module's go.sum file
+and records the cryptographic checksum of each package at download time. // Go 命令维护着所有下载的packages的缓存，在这些package下载时就计算并记录这些包的校验和.
+In normal operation, the go command checks the main module's go.sum file // 通常情况下,Go 命令只会检查go.sum是否与本地缓存的记录一致，甚至不会重新计算。（即不访问GOSUMDB）. 
 against these precomputed checksums instead of recomputing them on
 each command invocation. The 'go mod verify' command checks that
 the cached copies of module downloads still match both their recorded
-checksums and the entries in go.sum.
+checksums and the entries in go.sum.                                     // 'go mod verify'命令则会检查本地缓存的记录是否与GOSUMDB中记录的一致。
 
 In day-to-day development, the checksum of a given module version
 should never change. Each time a dependency is used by a given main

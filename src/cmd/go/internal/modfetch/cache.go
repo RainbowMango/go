@@ -220,7 +220,7 @@ func (r *cachingRepo) GoMod(version string) ([]byte, error) {
 			return cached{text, nil}
 		}
 
-		text, err = r.r.GoMod(version)
+		text, err = r.r.GoMod(version) // 获取包的`go.mod`文件
 		if err == nil {
 			if err := checkGoMod(r.path, version, text); err != nil {
 				return cached{text, err}

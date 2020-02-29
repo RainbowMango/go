@@ -709,7 +709,7 @@ In normal operation, the go command checks the main module's go.sum file // 通�
 against these precomputed checksums instead of recomputing them on
 each command invocation. The 'go mod verify' command checks that
 the cached copies of module downloads still match both their recorded
-checksums and the entries in go.sum.                                     // 'go mod verify'命令则会检查本地缓存的记录是否与GOSUMDB中记录的一致。
+checksums and the entries in go.sum.                                     // 'go mod verify'命令则会检查本地缓存是否与GOSUMDB中记录的一致。
 
 In day-to-day development, the checksum of a given module version
 should never change. Each time a dependency is used by a given main

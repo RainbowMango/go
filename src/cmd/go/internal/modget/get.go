@@ -35,16 +35,16 @@ var CmdGet = &base.Command{
 	Short:     "add dependencies to current module and install them",
 	Long: `
 Get resolves and adds dependencies to the current development module
-and then builds and installs them.
+and then builds and installs them.											      // 识别并添加依赖到当前开发的module中，然后编译并安装依赖
 
-The first step is to resolve which dependencies to add.
+The first step is to resolve which dependencies to add.                           // Step 1: 识别要处理的依赖版本
 
 For each named package or package pattern, get must decide which version of
-the corresponding module to use. By default, get looks up the latest tagged
-release version, such as v0.4.5 or v1.2.3. If there are no tagged release
+the corresponding module to use. By default, get looks up the latest tagged       // 默认情况下(go get github.com/xxx/xxx)， get 寻找最近的release版本；
+release version, such as v0.4.5 or v1.2.3. If there are no tagged release         // 如果没有release 版本，get 退而求其次而去寻找最近的 pre-release 版本；
 versions, get looks up the latest tagged pre-release version, such as
-v0.0.1-pre1. If there are no tagged versions at all, get looks up the latest
-known commit. If the module is not already required at a later version
+v0.0.1-pre1. If there are no tagged versions at all, get looks up the latest      // 如果没有任何版本，get 最后会去寻找最新的commit，总之要确定一个版本，统称"latest version"
+known commit. If the module is not already required at a later version            // 除非当前module已经使用了比‘latest version’更高的版本，否则get 将使用此‘latest version’.
 (for example, a pre-release newer than the latest release), get will use
 the version it looked up. Otherwise, get will use the currently
 required version.
@@ -63,8 +63,8 @@ selected explicitly. For example, the suffix @v2 means the latest version
 starting with v2, not the branch named v2.
 
 If a module under consideration is already a dependency of the current
-development module, then get will update the required version.
-Specifying a version earlier than the current required version is valid and
+development module, then get will update the required version.					// 如果当前module已经在使用某个依赖，那么get可以用来更新这个依赖
+Specifying a version earlier than the current required version is valid and     // 如果get指定的版本比当前module在使用的版本低，get会对该依赖降级，反则升级。
 downgrades the dependency. The version suffix @none indicates that the
 dependency should be removed entirely, downgrading or removing modules
 depending on it as needed.
@@ -116,12 +116,12 @@ this automatically as well.
 The -insecure flag permits fetching from repositories and resolving
 custom domains using insecure schemes such as HTTP. Use with caution.
 
-The second step is to download (if needed), build, and install
+The second step is to download (if needed), build, and install				// Step 2: 下载、编译、安装
 the named packages.
 
 If an argument names a module but not a package (because there is no
 Go source code in the module's root directory), then the install step
-is skipped for that argument, instead of causing a build failure.
+is skipped for that argument, instead of causing a build failure.           // 如果get 的参数是一个module而不是一个package（区别是module根目录没有.go文件），安装将自动跳过
 For example 'go get golang.org/x/perf' succeeds even though there
 is no code corresponding to that import path.
 

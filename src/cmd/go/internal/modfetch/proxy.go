@@ -56,10 +56,10 @@ latest known version of the given module in the same format as
 <module>/@v/<version>.info. The latest version should be the version of
 the module the go command may use if <module>/@v/list is empty or no
 listed version is suitable. <module>/@latest is optional and may not
-be implemented by a module proxy.
+be implemented by a module proxy.												// <module>/@latest 是可选的，可以不用实现
 
 When resolving the latest version of a module, the go command will request
-<module>/@v/list, then, if no suitable versions are found, <module>/@latest.
+<module>/@v/list, then, if no suitable versions are found, <module>/@latest.	// 当查询latest version时，先查询<module>/@v/list，如果没有合适的版本，则再查找<module>/@latest。
 The go command prefers, in order: the semantically highest release version,
 the semantically highest pre-release version, and the chronologically
 most recent pseudo-version. In Go 1.12 and earlier, the go command considered

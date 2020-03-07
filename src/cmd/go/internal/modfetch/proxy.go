@@ -35,20 +35,20 @@ var HelpGoproxy = &base.Command{
 A Go module proxy is any web server that can respond to GET requests for
 URLs of a specified form. The requests have no query parameters, so even
 a site serving from a fixed file system (including a file:/// URL)
-can be a module proxy.
+can be a module proxy.														// Go module代理是任何一个能响应指定Get请求的web服务器。请求没有参数，甚至文件服务器也可以充当代理。
 
 The GET requests sent to a Go module proxy are:
 
-GET $GOPROXY/<module>/@v/list returns a list of known versions of the given
+GET $GOPROXY/<module>/@v/list returns a list of known versions of the given // GET $GOPROXY/<module>/@v/list 返回一个module列表
 module, one per line.
 
-GET $GOPROXY/<module>/@v/<version>.info returns JSON-formatted metadata
+GET $GOPROXY/<module>/@v/<version>.info returns JSON-formatted metadata		// 返回一个module的JSON格式元数据
 about that version of the given module.
 
-GET $GOPROXY/<module>/@v/<version>.mod returns the go.mod file
+GET $GOPROXY/<module>/@v/<version>.mod returns the go.mod file				// GET $GOPROXY/<module>/@v/<version>.mod 返回该module的go.mod文件
 for that version of the given module.
 
-GET $GOPROXY/<module>/@v/<version>.zip returns the zip archive
+GET $GOPROXY/<module>/@v/<version>.zip returns the zip archive				// GET $GOPROXY/<module>/@v/<version>.zip 返回指定版本的module zip文件
 for that version of the given module.
 
 GET $GOPROXY/<module>/@latest returns JSON-formatted metadata about the
@@ -60,7 +60,7 @@ be implemented by a module proxy.												// <module>/@latest 是可选的，
 
 When resolving the latest version of a module, the go command will request
 <module>/@v/list, then, if no suitable versions are found, <module>/@latest.	// 当查询latest version时，先查询<module>/@v/list，如果没有合适的版本，则再查找<module>/@latest。
-The go command prefers, in order: the semantically highest release version,
+The go command prefers, in order: the semantically highest release version,		// go 命令获取包顺序：最新的语义化版本-->最新的语义化预发布版本-->最新的伪版本
 the semantically highest pre-release version, and the chronologically
 most recent pseudo-version. In Go 1.12 and earlier, the go command considered
 pseudo-versions in <module>/@v/list to be pre-release versions, but this is
@@ -69,7 +69,7 @@ no longer true since Go 1.13.
 To avoid problems when serving from case-sensitive file systems,
 the <module> and <version> elements are case-encoded, replacing every
 uppercase letter with an exclamation mark followed by the corresponding
-lower-case letter: github.com/Azure encodes as github.com/!azure.
+lower-case letter: github.com/Azure encodes as github.com/!azure.				// 为了区分大小写，module名字统一使用大小写编码的字母表示。
 
 The JSON-formatted metadata about a given module corresponds to
 this Go data structure, which may be expanded in the future:
@@ -91,8 +91,8 @@ archive.
 Even when downloading directly from version control systems,
 the go command synthesizes explicit info, mod, and zip files
 and stores them in its local cache, $GOPATH/pkg/mod/cache/download,
-the same as if it had downloaded them directly from a proxy.
-The cache layout is the same as the proxy URL space, so
+the same as if it had downloaded them directly from a proxy. 					// 即便直接从版本控制系统中下载module，go 命令也会生成 info、mod、zip文件，好像跟从proxy获取的一样。
+The cache layout is the same as the proxy URL space, so							// 本地缓存中存放module的目录结构和proxy代理中一致。
 serving $GOPATH/pkg/mod/cache/download at (or copying it to)
 https://example.com/proxy would let other users access those
 cached module versions with GOPROXY=https://example.com/proxy.

@@ -768,41 +768,41 @@ var HelpModulePrivate = &base.Command{
 	UsageLine: "module-private",
 	Short:     "module configuration for non-public modules",
 	Long: `
-The go command defaults to downloading modules from the public Go module
+The go command defaults to downloading modules from the public Go module			// go 命令默认从官方的镜像服务器下载module。
 mirror at proxy.golang.org. It also defaults to validating downloaded modules,
-regardless of source, against the public Go checksum database at sum.golang.org.
-These defaults work well for publicly available source code.
+regardless of source, against the public Go checksum database at sum.golang.org.	// go 命令还默认校验下载的module，校验是依据sum.golang.org，而不是代码源。
+These defaults work well for publicly available source code.						// 对于公共可获得的源码来讲，这些默认值工作得很好。
 
-The GOPRIVATE environment variable controls which modules the go command
-considers to be private (not available publicly) and should therefore not use the
+The GOPRIVATE environment variable controls which modules the go command			// GOPRIVATE环境变量用于指示go 命令哪些module是私有的，不会使用代理和cheksum数据库。
+considers to be private (not available publicly) and should therefore not use the	// 私有的module隐含的意思是非公开可获得，也即不需要通过官方的GOPROXY下载、GOSUMDB校验。
 proxy or checksum database. The variable is a comma-separated list of
-glob patterns (in the syntax of Go's path.Match) of module path prefixes.
+glob patterns (in the syntax of Go's path.Match) of module path prefixes.			// 变量为逗号分隔的module前缀（支持通配符）。
 For example,
 
 	GOPRIVATE=*.corp.example.com,rsc.io/private
 
-causes the go command to treat as private any module with a path prefix
+causes the go command to treat as private any module with a path prefix				// 如果module前缀匹配成功，则会被go命令视为私有module。
 matching either pattern, including git.corp.example.com/xyzzy, rsc.io/private,
 and rsc.io/private/quux.
 
 The GOPRIVATE environment variable may be used by other tools as well to
-identify non-public modules. For example, an editor could use GOPRIVATE
+identify non-public modules. For example, an editor could use GOPRIVATE				// GOPRIVATE 也可以被其他工具用于识别哪些是私有包。（作用不大，非典型场景。）
 to decide whether to hyperlink a package import to a godoc.org page.
 
-For fine-grained control over module download and validation, the GONOPROXY
-and GONOSUMDB environment variables accept the same kind of glob list
+For fine-grained control over module download and validation, the GONOPROXY			// 为了更精细的控制module的下载和校验，GONOPROXY 和 GONOSUMDB也接受与GOPRIVATE一样的表达式，
+and GONOSUMDB environment variables accept the same kind of glob list				// 但是他们覆盖GOPRIVATE。
 and override GOPRIVATE for the specific decision of whether to use the proxy
 and checksum database, respectively.
 
 For example, if a company ran a module proxy serving private modules,
 users would configure go using:
 
-	GOPRIVATE=*.corp.example.com
+	GOPRIVATE=*.corp.example.com													// 此处虽然指定了GOPRIVATE，表示部分module不走代理。
 	GOPROXY=proxy.example.com
-	GONOPROXY=none
+	GONOPROXY=none																	// 但此处也指定了所有module都走代理，看上去有点冲突，实际上它会覆盖掉GOPRIVATE的值。
 
-This would tell the go command and other tools that modules beginning with
-a corp.example.com subdomain are private but that the company proxy should
+This would tell the go command and other tools that modules beginning with			// 这相当于告诉go命令，corp.example.com的子域是私有的，可以通过私有的代理获取所有公正和私有的module。
+a corp.example.com subdomain are private but that the company proxy should			// 因为GONOPROXY覆盖了GOPRIVATE，并显示没有module会绕过代理。
 be used for downloading both public and private modules, because
 GONOPROXY has been set to a pattern that won't match any modules,
 overriding GOPRIVATE.

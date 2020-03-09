@@ -995,9 +995,9 @@ func tRunner(t *T, fn func(t *T)) {
 	t.finished = true
 }
 
-// Run runs f as a subtest of t called name. It runs f in a separate goroutine
-// and blocks until f returns or calls t.Parallel to become a parallel test.
-// Run reports whether f succeeded (or at least did not fail before calling t.Parallel).
+// Run runs f as a subtest of t called name. It runs f in a separate goroutine				// Run()函数启动一个单独的协程来运行名字为`name`的子测试`f`。
+// and blocks until f returns or calls t.Parallel to become a parallel test.				// Run()函数会阻塞等待其执行结束，除非`f`显式地调用`t.Parallel`将自己变成并行测试。
+// Run reports whether f succeeded (or at least did not fail before calling t.Parallel).	// Run()会报告`f`的执行结果
 //
 // Run may be called simultaneously from multiple goroutines, but all such calls
 // must return before the outer test function for t returns.

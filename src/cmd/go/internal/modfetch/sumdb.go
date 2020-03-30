@@ -73,7 +73,7 @@ func dbDial() (dbName string, db *sumdb.Client, err error) {
 	key := strings.Fields(gosumdb)
 	if len(key) >= 1 {
 		if k := knownGOSUMDB[key[0]]; k != "" {
-			key[0] = k
+			key[0] = k								// 这里key替换成完整格式，如"sum.golang.org+033de0ae+Ac4zctda0e5eza+HJyk9SxEdh+s3Ux18htTTAD8OuAn8 https://sum.golang.google.cn"
 		}
 	}
 	if len(key) == 0 {

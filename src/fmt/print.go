@@ -984,13 +984,13 @@ formatLoop:
 	for i := 0; i < end; {
 		p.goodArgNum = true
 		lasti := i
-		for i < end && format[i] != '%' {
+		for i < end && format[i] != '%' { // 寻找下一个格式字符'%'，在'%'出现以前都是常量字符
 			i++
 		}
-		if i > lasti {
+		if i > lasti { // 把常量字符写入缓存中
 			p.buf.writeString(format[lasti:i])
 		}
-		if i >= end {
+		if i >= end { // 如果遍历结束仍没有遇到'%'，说明已处理完
 			// done processing format string
 			break
 		}

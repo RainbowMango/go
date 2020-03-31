@@ -405,7 +405,7 @@ type g struct {
 	stackguard1 uintptr // offset known to liblink
 
 	_panic       *_panic // innermost panic - offset known to liblink
-	_defer       *_defer // innermost defer
+	_defer       *_defer // innermost defer	// defer 链表
 	m            *m      // current m; offset known to arm liblink
 	sched        gobuf
 	syscallsp    uintptr        // if status==Gsyscall, syscallsp = sched.sp to use during gc

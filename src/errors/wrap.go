@@ -12,16 +12,16 @@ import (
 // type contains an Unwrap method returning error.
 // Otherwise, Unwrap returns nil.
 func Unwrap(err error) error {
-	u, ok := err.(interface {
+	u, ok := err.(interface { // 检查是否实现了Unwrap函数
 		Unwrap() error
 	})
-	if !ok {
+	if !ok { // 没有实现Unwrap函数，不支持Unwrap
 		return nil
 	}
 	return u.Unwrap()
 }
 
-// Is reports whether any error in err's chain matches target.
+// Is reports whether any error in err's chain matches target.						// Is用于检查error链条中是否包含指定的错误值。
 //
 // The chain consists of err itself followed by the sequence of errors obtained by
 // repeatedly calling Unwrap.
@@ -46,7 +46,7 @@ func Is(err, target error) bool {
 		if isComparable && err == target {
 			return true
 		}
-		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+		if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) { // 自定义的error类型如果实现了Is()方法，则会咨询Is()方法
 			return true
 		}
 		// TODO: consider supporting target.Is(err). This would allow
@@ -59,20 +59,20 @@ func Is(err, target error) bool {
 }
 
 // As finds the first error in err's chain that matches target, and if so, sets
-// target to that error value and returns true. Otherwise, it returns false.
+// target to that error value and returns true. Otherwise, it returns false.		// As从error链条中找出第一个与target类型匹配的error，并把error写入到target中。成功返回true，否则返回false。
 //
 // The chain consists of err itself followed by the sequence of errors obtained by
 // repeatedly calling Unwrap.
 //
-// An error matches target if the error's concrete value is assignable to the value
-// pointed to by target, or if the error has a method As(interface{}) bool such that
-// As(target) returns true. In the latter case, the As method is responsible for
+// An error matches target if the error's concrete value is assignable to the value		// 满足以下条件即可说明error与目标匹配：
+// pointed to by target, or if the error has a method As(interface{}) bool such that	// 1. error可以转换为target
+// As(target) returns true. In the latter case, the As method is responsible for		// 2. error实现了As()方法，且As()方法返回true
 // setting target.
 //
 // An error type might provide an As method so it can be treated as if it were a
 // a different error type.
 //
-// As panics if target is not a non-nil pointer to either a type that implements
+// As panics if target is not a non-nil pointer to either a type that implements		// target必须是非空指针、必须是指向实现了error接口的接口，否则会Panic
 // error, or to any interface type.
 func As(err error, target interface{}) bool {
 	if target == nil {

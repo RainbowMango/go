@@ -865,7 +865,7 @@ type _defer struct {
 	sp        uintptr  // sp at time of defer
 	pc        uintptr  // pc at time of defer
 	fn        *funcval // can be nil for open-coded defers
-	_panic    *_panic  // panic that is running defer
+	_panic    *_panic  // panic that is running defer // panic时处理_defer时会把当前_panic指针传入，方便标记_panic状态，比如recover。
 	link      *_defer
 
 	// If openDefer is true, the fields below record values about the stack
@@ -893,14 +893,14 @@ type _defer struct {
 //
 //go:notinheap
 type _panic struct {
-	argp      unsafe.Pointer // pointer to arguments of deferred call run during panic; cannot move - known to liblink
-	arg       interface{}    // argument to panic
-	link      *_panic        // link to earlier panic
-	pc        uintptr        // where to return to in runtime if this panic is bypassed
-	sp        unsafe.Pointer // where to return to in runtime if this panic is bypassed
+	argp      unsafe.Pointer // pointer to arguments of deferred call run during panic; cannot move - known to liblink	// defer函数的参数
+	arg       interface{}    // argument to panic	// panic()的参数
+	link      *_panic        // link to earlier panic // 嵌套panic时指向前一个panic
+	pc        uintptr        // where to return to in runtime if this panic is bypassed	// 记录panic位置，以便recover后返回
+	sp        unsafe.Pointer // where to return to in runtime if this panic is bypassed	// 记录panic位置，以便recover后返回
 	recovered bool           // whether this panic is over
-	aborted   bool           // the panic was aborted
-	goexit    bool
+	aborted   bool           // the panic was aborted	// 如果在defer中再次panic，则当前panic会被标记为aborted
+	goexit    bool           // 标记是否为runtime.Goexit()产生的panic
 }
 
 // stack traces

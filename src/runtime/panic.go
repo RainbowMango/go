@@ -884,7 +884,7 @@ func reflectcallSave(p *_panic, fn, arg unsafe.Pointer, argsize uint32) {
 }
 
 // The implementation of the predeclared function panic.
-func gopanic(e interface{}) {
+func gopanic(e interface{}) { // panic执行函数
 	gp := getg()
 	if gp.m.curg != gp {
 		print("panic: ")
@@ -915,10 +915,10 @@ func gopanic(e interface{}) {
 		throw("panic holding locks")
 	}
 
-	var p _panic
-	p.arg = e
-	p.link = gp._panic
-	gp._panic = (*_panic)(noescape(unsafe.Pointer(&p)))
+	var p _panic                                        // 创建新的_panic节点
+	p.arg = e                                           // 存储panic的参数
+	p.link = gp._panic                                  // 新节点指向当前协程panic链表首部，准备插入
+	gp._panic = (*_panic)(noescape(unsafe.Pointer(&p))) // 将新节点插入协程链表首部
 
 	atomic.Xadd(&runningPanicDefers, 1)
 
@@ -927,16 +927,16 @@ func gopanic(e interface{}) {
 	addOneOpenDeferFrame(gp, getcallerpc(), unsafe.Pointer(getcallersp()))
 
 	for {
-		d := gp._defer
-		if d == nil {
+		d := gp._defer // 遍历_defer链表，执行defer函数
+		if d == nil {  // 最简单的情形，没有defer函数需要处理
 			break
 		}
 
 		// If defer was started by earlier panic or Goexit (and, since we're back here, that triggered a new panic),
 		// take defer off list. An earlier panic will not continue running, but we will make sure below that an
 		// earlier Goexit does continue running.
-		if d.started {
-			if d._panic != nil {
+		if d.started { // 嵌套panic的情形
+			if d._panic != nil { // 把之前_defer节点中记忆中的_panic标记为aborted。
 				d._panic.aborted = true
 			}
 			d._panic = nil
@@ -960,17 +960,17 @@ func gopanic(e interface{}) {
 		// Record the panic that is running the defer.
 		// If there is a new panic during the deferred call, that panic
 		// will find d in the list and will mark d._panic (this panic) aborted.
-		d._panic = (*_panic)(noescape(unsafe.Pointer(&p)))
+		d._panic = (*_panic)(noescape(unsafe.Pointer(&p))) // 标记触发defer的panic
 
 		done := true
-		if d.openDefer {
+		if d.openDefer { // 如果defer是开放编码类型，执行defer
 			done = runOpenDeferFrame(gp, d)
 			if done && !d._panic.recovered {
 				addOneOpenDeferFrame(gp, 0, nil)
 			}
 		} else {
-			p.argp = unsafe.Pointer(getargp(0))
-			reflectcall(nil, unsafe.Pointer(d.fn), deferArgs(d), uint32(d.siz), uint32(d.siz))
+			p.argp = unsafe.Pointer(getargp(0))                                                // 只有非开放编码才需要传递参数
+			reflectcall(nil, unsafe.Pointer(d.fn), deferArgs(d), uint32(d.siz), uint32(d.siz)) // 执行defer
 		}
 		p.argp = nil
 
@@ -985,13 +985,13 @@ func gopanic(e interface{}) {
 
 		pc := d.pc
 		sp := unsafe.Pointer(d.sp) // must be pointer so it gets adjusted during stack copy
-		if done {
+		if done {                  // 执行完defer，将defer清阶
 			d.fn = nil
-			gp._defer = d.link
+			gp._defer = d.link // 从链表中移除首节点（即当前defer）
 			freedefer(d)
 		}
 		if p.recovered {
-			gp._panic = p.link
+			gp._panic = p.link // 如果当前panic被recover，移除当前panic
 			if gp._panic != nil && gp._panic.goexit && gp._panic.aborted {
 				// A normal recover would bypass/abort the Goexit.  Instead,
 				// we return to the processing loop of the Goexit.
@@ -1046,8 +1046,8 @@ func gopanic(e interface{}) {
 			// Pass information about recovering frame to recovery.
 			gp.sigcode0 = uintptr(sp)
 			gp.sigcode1 = pc
-			mcall(recovery)
-			throw("recovery failed") // mcall should not return
+			mcall(recovery)          // recover恢复正常的流程，好像在正常的执行defer一样
+			throw("recovery failed") // mcall should not return // 正常情况下该语句不会执行
 		}
 	}
 
@@ -1057,7 +1057,7 @@ func gopanic(e interface{}) {
 	// and String methods to prepare the panic strings before startpanic.
 	preprintpanics(gp._panic)
 
-	fatalpanic(gp._panic) // should not return
+	fatalpanic(gp._panic) // should not return // 中止整个程序
 	*(*int)(nil) = 0      // not reached
 }
 
@@ -1081,13 +1081,13 @@ func gorecover(argp uintptr) interface{} {
 	// Must be in a function running as part of a deferred call during the panic.
 	// Must be called from the topmost function of the call
 	// (the function used in the defer statement).
-	// p.argp is the argument pointer of that topmost deferred function call.
+	// p.argp is the argument pointer of that topmost deferred function call.	// p.argp是当前栈顶defer函数的参数，由调用时产生
 	// Compare against argp reported by caller.
 	// If they match, the caller is the one who can recover.
 	gp := getg()
-	p := gp._panic
-	if p != nil && !p.goexit && !p.recovered && argp == uintptr(p.argp) {
-		p.recovered = true
+	p := gp._panic                                                        // 只有发生了panic，该链表才不为空
+	if p != nil && !p.goexit && !p.recovered && argp == uintptr(p.argp) { // 所以，没有panic时，recover返回nil
+		p.recovered = true // argp == uintptr(p.argp)什么时候才不成立？ 当defer()函数中调用了A函数，A函数中recover()时，recover()传入的参数为A的参数，与_panic中不一致
 		return p.arg
 	}
 	return nil

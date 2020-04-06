@@ -38,7 +38,7 @@ type _type struct {
 	kind       uint8
 	// function for comparing objects of this type
 	// (ptr to object A, ptr to object B) -> ==?
-	equal func(unsafe.Pointer, unsafe.Pointer) bool
+	equal func(unsafe.Pointer, unsafe.Pointer) bool // 每个类型都提供一个比较函数来比较两元素，如果没有该函数，那么该类型则是不可比较的
 	// gcdata stores the GC type data for the garbage collector.
 	// If the KindGCProg bit is set in kind, gcdata is a GC program.
 	// Otherwise it is a ptrmask bitmap. See mbitmap.go for details.

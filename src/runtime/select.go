@@ -129,7 +129,7 @@ func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 
 	// Replace send/receive cases involving nil channels with
 	// caseNil so logic below can assume non-nil channel.
-	for i := range scases { // 过滤掉nil channel的case。
+	for i := range scases { // 过滤掉nil channel的case。(因为nil的channle永远不可能被选中)
 		cas := &scases[i]
 		if cas.c == nil && cas.kind != caseDefault {
 			*cas = scase{}

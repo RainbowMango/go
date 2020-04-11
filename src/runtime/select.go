@@ -16,10 +16,10 @@ const debugSelect = false
 // Known to compiler.
 // Changes here must also be made in src/cmd/compile/internal/gc/select.go's walkselectcases.
 const (
-	caseNil = iota
-	caseRecv
-	caseSend
-	caseDefault
+	caseNil     = iota // 管道为nil
+	caseRecv           // 读管道的case
+	caseSend           // 写管道的case
+	caseDefault        // default
 )
 
 // Select case descriptor.
@@ -123,9 +123,9 @@ func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 	cas1 := (*[1 << 16]scase)(unsafe.Pointer(cas0))      // len(cas1)=65536, cap(cas1)=65536
 	order1 := (*[1 << 17]uint16)(unsafe.Pointer(order0)) // len(order1)=131072, cap(order1)=131072
 
-	scases := cas1[:ncases:ncases]      // 从大数组中切出原始的case
-	pollorder := order1[:ncases:ncases] // 大数组中切出与case数相等的切片
-	lockorder := order1[ncases:][:ncases:ncases]
+	scases := cas1[:ncases:ncases]               // 从大数组中切出原始的case
+	pollorder := order1[:ncases:ncases]          // order1前半段，每个元素代表随机的index
+	lockorder := order1[ncases:][:ncases:ncases] // order1后半段，TODO：这是啥结构...
 
 	// Replace send/receive cases involving nil channels with
 	// caseNil so logic below can assume non-nil channel.

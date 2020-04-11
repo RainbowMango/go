@@ -105,13 +105,13 @@ func block() {
 	gopark(nil, nil, waitReasonSelectNoCases, traceEvGoStop, 1) // forever
 }
 
-// selectgo implements the select statement.
+// selectgo implements the select statement. // selectgo实现select语句
 //
 // cas0 points to an array of type [ncases]scase, and order0 points to
 // an array of type [2*ncases]uint16. Both reside on the goroutine's
 // stack (regardless of any escaping in selectgo).
 //
-// selectgo returns the index of the chosen scase, which matches the
+// selectgo returns the index of the chosen scase, which matches the	// selectgo返回选中的case索引，如果case对应读操作，还返回是否成功接收到值。
 // ordinal position of its respective select{recv,send,default} call.
 // Also, if the chosen scase was a receive operation, it reports whether
 // a value was received.
@@ -120,16 +120,16 @@ func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 		print("select: cas0=", cas0, "\n")
 	}
 
-	cas1 := (*[1 << 16]scase)(unsafe.Pointer(cas0))
-	order1 := (*[1 << 17]uint16)(unsafe.Pointer(order0))
+	cas1 := (*[1 << 16]scase)(unsafe.Pointer(cas0))      // len(cas1)=65536, cap(cas1)=65536
+	order1 := (*[1 << 17]uint16)(unsafe.Pointer(order0)) // len(order1)=131072, cap(order1)=131072
 
-	scases := cas1[:ncases:ncases]
-	pollorder := order1[:ncases:ncases]
+	scases := cas1[:ncases:ncases]      // 从大数组中切出原始的case
+	pollorder := order1[:ncases:ncases] // 大数组中切出与case数相等的切片
 	lockorder := order1[ncases:][:ncases:ncases]
 
 	// Replace send/receive cases involving nil channels with
 	// caseNil so logic below can assume non-nil channel.
-	for i := range scases {
+	for i := range scases { // 过滤掉nil channel的case。
 		cas := &scases[i]
 		if cas.c == nil && cas.kind != caseDefault {
 			*cas = scase{}
@@ -205,7 +205,7 @@ func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 	}
 
 	// lock all the channels involved in the select
-	sellock(scases, lockorder)
+	sellock(scases, lockorder) // 锁定所有channel
 
 	var (
 		gp     *g
@@ -231,18 +231,18 @@ loop:
 		c = cas.c
 
 		switch cas.kind {
-		case caseNil:
+		case caseNil: // 前面已经过滤掉的case，直接忽略
 			continue
 
 		case caseRecv:
 			sg = c.sendq.dequeue()
-			if sg != nil {
+			if sg != nil { // 有等待写入的，说明可以读取了
 				goto recv
 			}
-			if c.qcount > 0 {
+			if c.qcount > 0 { // 缓冲区中有数据，也可以读取了
 				goto bufrecv
 			}
-			if c.closed != 0 {
+			if c.closed != 0 { // channel已关闭
 				goto rclose
 			}
 
@@ -250,24 +250,24 @@ loop:
 			if raceenabled {
 				racereadpc(c.raceaddr(), cas.pc, chansendpc)
 			}
-			if c.closed != 0 {
+			if c.closed != 0 { // 向关闭的channel发送数据是绝对不允许的，先判断
 				goto sclose
 			}
-			sg = c.recvq.dequeue()
+			sg = c.recvq.dequeue() // 有等待读取的协程，说明可以写入
 			if sg != nil {
 				goto send
 			}
-			if c.qcount < c.dataqsiz {
+			if c.qcount < c.dataqsiz { // 缓冲区中有究竟，说明可以写入
 				goto bufsend
 			}
 
-		case caseDefault:
+		case caseDefault: // 标记default case的位置
 			dfli = casi
 			dfl = cas
 		}
 	}
 
-	if dfl != nil {
+	if dfl != nil { // 所有case都未就绪，存在default出口，走default
 		selunlock(scases, lockorder)
 		casi = dfli
 		cas = dfl
@@ -275,12 +275,12 @@ loop:
 	}
 
 	// pass 2 - enqueue on all chans
-	gp = getg()
+	gp = getg() // 走到此处，说明所有的case都未就绪，也没有default（否则都goto跳转到下方了）
 	if gp.waiting != nil {
 		throw("gp.waiting != nil")
 	}
 	nextp = &gp.waiting
-	for _, casei := range lockorder {
+	for _, casei := range lockorder { // 将自身协程添加到每个channel的等待队列中（或读或写）
 		casi = int(casei)
 		cas = &scases[casi]
 		if cas.kind == caseNil {

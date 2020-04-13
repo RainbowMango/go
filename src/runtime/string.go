@@ -29,7 +29,7 @@ func concatstrings(buf *tmpBuf, a []string) string {
 		if n == 0 {
 			continue
 		}
-		if l+n < l {
+		if l+n < l { // 字符串太长，导致溢出
 			throw("string concatenation too long")
 		}
 		l += n
@@ -97,12 +97,16 @@ func slicebytetostring(buf *tmpBuf, b []byte) (str string) {
 
 	var p unsafe.Pointer
 	if buf != nil && len(b) <= len(buf) {
+		// 如果预留buf够用，则用预留buf
 		p = unsafe.Pointer(buf)
 	} else {
+		// 否则重新申请内存
 		p = mallocgc(uintptr(len(b)), nil, false)
 	}
+	// 构建字符串
 	stringStructOf(&str).str = p
 	stringStructOf(&str).len = len(b)
+	// 将切片底层数组中数据拷贝到字符串
 	memmove(p, (*(*slice)(unsafe.Pointer(&b))).array, uintptr(len(b)))
 	return
 }
@@ -156,8 +160,10 @@ func stringtoslicebyte(buf *tmpBuf, s string) []byte {
 	var b []byte
 	if buf != nil && len(s) <= len(buf) {
 		*buf = tmpBuf{}
+		// 从预留buf中切出新的切片
 		b = buf[:len(s)]
 	} else {
+		// 生成新的切片
 		b = rawbyteslice(len(s))
 	}
 	copy(b, s)

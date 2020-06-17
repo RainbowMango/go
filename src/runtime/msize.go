@@ -10,7 +10,7 @@
 package runtime
 
 // Returns size of the memory block that mallocgc will allocate if you ask for the size.
-func roundupsize(size uintptr) uintptr {
+func roundupsize(size uintptr) uintptr { // 输入期望size，输出实际size，实际size可能大于期望size
 	if size < _MaxSmallSize {
 		if size <= smallSizeMax-8 {
 			return uintptr(class_to_size[size_to_class8[(size+smallSizeDiv-1)/smallSizeDiv]])

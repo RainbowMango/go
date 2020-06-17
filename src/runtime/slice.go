@@ -119,7 +119,7 @@ func growslice(et *_type, old slice, cap int) slice {
 	// For 1 we don't need any division/multiplication.
 	// For sys.PtrSize, compiler will optimize division/multiplication into a shift by a constant.
 	// For powers of 2, use a variable shift.
-	switch {
+	switch { // 根据元素类型微调实际的空间需求
 	case et.size == 1:
 		lenmem = uintptr(old.len)
 		newlenmem = uintptr(cap)

@@ -73,7 +73,7 @@ func makeslice64(et *_type, len64, cap64 int64) unsafe.Pointer {
 // to calculate where to write new values during an append.
 // TODO: When the old backend is gone, reconsider this decision.
 // The SSA backend might prefer the new length or to return only ptr/cap and save stack space.
-func growslice(et *_type, old slice, cap int) slice {
+func growslice(et *_type, old slice, cap int) slice { // 通过参数可以知道：切片内存增长与切片类型(et)、原切片容量（old.cap）和预估容量（cap）有关。
 	if raceenabled {
 		callerpc := getcallerpc()
 		racereadrangepc(old.array, uintptr(old.len*int(et.size)), callerpc, funcPC(growslice))
@@ -86,28 +86,28 @@ func growslice(et *_type, old slice, cap int) slice {
 		panic(errorString("growslice: cap out of range"))
 	}
 
-	if et.size == 0 {
+	if et.size == 0 { // 如果切片类型大小为0，（比如 struct{}），则直接使用预估容量
 		// append should not create a slice with nil pointer but non-zero len.
 		// We assume that append doesn't need to preserve old.array in this case.
 		return slice{unsafe.Pointer(&zerobase), old.len, cap}
 	}
 
 	newcap := old.cap
-	doublecap := newcap + newcap
-	if cap > doublecap {
+	doublecap := newcap + newcap // 先把原容量翻倍
+	if cap > doublecap {         // 如果预估容量仍超过翻倍后的容量，则使用预估容量
 		newcap = cap
-	} else {
-		if old.len < 1024 {
+	} else { // 翻倍后的容量如果大于预估容量，则需要考虑原切片容量，来考虑是否真的需要翻倍了
+		if old.len < 1024 { // 如果原长度还未超过1024，那么容量涨幅可以大些，使用翻倍后的容量扩容
 			newcap = doublecap
-		} else {
+		} else { // 如果原长度已经超过1024，容量涨幅就需要控制了
 			// Check 0 < newcap to detect overflow
 			// and prevent an infinite loop.
-			for 0 < newcap && newcap < cap {
+			for 0 < newcap && newcap < cap { // 新空间执行增长25%策略，但要确保最终大小超过预估大小。
 				newcap += newcap / 4
 			}
 			// Set newcap to the requested cap when
 			// the newcap calculation overflowed.
-			if newcap <= 0 {
+			if newcap <= 0 { // 对最终计算结果进行修正，如果结果溢出了，则使用预估大小。
 				newcap = cap
 			}
 		}

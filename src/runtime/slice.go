@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"fmt"
 	"runtime/internal/math"
 	"runtime/internal/sys"
 	"unsafe"
@@ -123,6 +124,7 @@ func makeslice64(et *_type, len64, cap64 int64) unsafe.Pointer {
 // TODO: When the old backend is gone, reconsider this decision.
 // The SSA backend might prefer the new length or to return only ptr/cap and save stack space.
 func growslice(et *_type, old slice, cap int) slice {
+	fmt.Printf("[JUSTFORDEBUG]: oldlen=%d, oldcap=%d, desiredcap=%d\n", old.len, old.cap, cap)
 	if raceenabled {
 		callerpc := getcallerpc()
 		racereadrangepc(old.array, uintptr(old.len*int(et.size)), callerpc, funcPC(growslice))

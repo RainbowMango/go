@@ -123,7 +123,7 @@ func makeslice64(et *_type, len64, cap64 int64) unsafe.Pointer {
 // TODO: When the old backend is gone, reconsider this decision.
 // The SSA backend might prefer the new length or to return only ptr/cap and save stack space.
 func growslice(et *_type, old slice, cap int) slice {
-	cap = cap * 2
+	cap002 := cap * 2
 	if raceenabled {
 		callerpc := getcallerpc()
 		racereadrangepc(old.array, uintptr(old.len*int(et.size)), callerpc, funcPC(growslice))
@@ -132,33 +132,33 @@ func growslice(et *_type, old slice, cap int) slice {
 		msanread(old.array, uintptr(old.len*int(et.size)))
 	}
 
-	if cap < old.cap {
-		panic(errorString("growslice: cap out of range"))
+	if cap002 < old.cap {
+		panic(errorString("growslice: cap002 out of range"))
 	}
 
 	if et.size == 0 {
 		// append should not create a slice with nil pointer but non-zero len.
 		// We assume that append doesn't need to preserve old.array in this case.
-		return slice{unsafe.Pointer(&zerobase), old.len, cap}
+		return slice{unsafe.Pointer(&zerobase), old.len, cap002}
 	}
 
 	newcap := old.cap
 	doublecap := newcap + newcap
-	if cap > doublecap {
-		newcap = cap
+	if cap002 > doublecap {
+		newcap = cap002
 	} else {
 		if old.len < 1024 {
 			newcap = doublecap
 		} else {
 			// Check 0 < newcap to detect overflow
 			// and prevent an infinite loop.
-			for 0 < newcap && newcap < cap {
+			for 0 < newcap && newcap < cap002 {
 				newcap += newcap / 4
 			}
-			// Set newcap to the requested cap when
+			// Set newcap to the requested cap002 when
 			// the newcap calculation overflowed.
 			if newcap <= 0 {
-				newcap = cap
+				newcap = cap002
 			}
 		}
 	}
@@ -172,13 +172,13 @@ func growslice(et *_type, old slice, cap int) slice {
 	switch {
 	case et.size == 1:
 		lenmem = uintptr(old.len)
-		newlenmem = uintptr(cap)
+		newlenmem = uintptr(cap002)
 		capmem = roundupsize(uintptr(newcap))
 		overflow = uintptr(newcap) > maxAlloc
 		newcap = int(capmem)
 	case et.size == sys.PtrSize:
 		lenmem = uintptr(old.len) * sys.PtrSize
-		newlenmem = uintptr(cap) * sys.PtrSize
+		newlenmem = uintptr(cap002) * sys.PtrSize
 		capmem = roundupsize(uintptr(newcap) * sys.PtrSize)
 		overflow = uintptr(newcap) > maxAlloc/sys.PtrSize
 		newcap = int(capmem / sys.PtrSize)
@@ -191,13 +191,13 @@ func growslice(et *_type, old slice, cap int) slice {
 			shift = uintptr(sys.Ctz32(uint32(et.size))) & 31
 		}
 		lenmem = uintptr(old.len) << shift
-		newlenmem = uintptr(cap) << shift
+		newlenmem = uintptr(cap002) << shift
 		capmem = roundupsize(uintptr(newcap) << shift)
 		overflow = uintptr(newcap) > (maxAlloc >> shift)
 		newcap = int(capmem >> shift)
 	default:
 		lenmem = uintptr(old.len) * et.size
-		newlenmem = uintptr(cap) * et.size
+		newlenmem = uintptr(cap002) * et.size
 		capmem, overflow = math.MulUintptr(et.size, uintptr(newcap))
 		capmem = roundupsize(capmem)
 		newcap = int(capmem / et.size)
@@ -217,13 +217,13 @@ func growslice(et *_type, old slice, cap int) slice {
 	//   print(len(s), "\n")
 	// }
 	if overflow || capmem > maxAlloc {
-		panic(errorString("growslice: cap out of range"))
+		panic(errorString("growslice: cap002 out of range"))
 	}
 
 	var p unsafe.Pointer
 	if et.ptrdata == 0 {
 		p = mallocgc(capmem, nil, false)
-		// The append() that calls growslice is going to overwrite from old.len to cap (which will be the new length).
+		// The append() that calls growslice is going to overwrite from old.len to cap002 (which will be the new length).
 		// Only clear the part that will not be overwritten.
 		memclrNoHeapPointers(add(p, newlenmem), capmem-newlenmem)
 	} else {

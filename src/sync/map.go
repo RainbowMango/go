@@ -110,12 +110,12 @@ func newEntry(i any) *entry {
 func (m *Map) Load(key any) (value any, ok bool) {
 	read, _ := m.read.Load().(readOnly)
 	e, ok := read.m[key]
-	if !ok && read.amended {
+	if !ok && read.amended { // 不存在于read中，并且read相较于dirty有缺失，那么接着从dirty中查找
 		m.mu.Lock()
 		// Avoid reporting a spurious miss if m.dirty got promoted while we were
 		// blocked on m.mu. (If further loads of the same key will not miss, it's
 		// not worth copying the dirty map for this key.)
-		read, _ = m.read.Load().(readOnly)
+		read, _ = m.read.Load().(readOnly) // 再找一遍，防止在待锁期间dirty数据向read同步过
 		e, ok = read.m[key]
 		if !ok && read.amended {
 			e, ok = m.dirty[key]
@@ -134,7 +134,7 @@ func (m *Map) Load(key any) (value any, ok bool) {
 
 func (e *entry) load() (value any, ok bool) {
 	p := atomic.LoadPointer(&e.p)
-	if p == nil || p == expunged {
+	if p == nil || p == expunged { // 值不存在，或者已被擦除了
 		return nil, false
 	}
 	return *(*any)(p), true
@@ -143,29 +143,29 @@ func (e *entry) load() (value any, ok bool) {
 // Store sets the value for a key.
 func (m *Map) Store(key, value any) {
 	read, _ := m.read.Load().(readOnly)
-	if e, ok := read.m[key]; ok && e.tryStore(&value) {
+	if e, ok := read.m[key]; ok && e.tryStore(&value) { // 如果key值存在于read，并且还没被擦除，就写入
 		return
 	}
 
 	m.mu.Lock()
 	read, _ = m.read.Load().(readOnly)
-	if e, ok := read.m[key]; ok {
-		if e.unexpungeLocked() {
+	if e, ok := read.m[key]; ok { // 再查一遍（有可能等待锁时dirty已经同步到read了）
+		if e.unexpungeLocked() { // 消除被擦除的痕迹
 			// The entry was previously expunged, which implies that there is a
 			// non-nil dirty map and this entry is not in it.
 			m.dirty[key] = e
 		}
-		e.storeLocked(&value)
-	} else if e, ok := m.dirty[key]; ok {
-		e.storeLocked(&value)
-	} else {
+		e.storeLocked(&value) // 存入value值，这样read和dirty中都有了
+	} else if e, ok := m.dirty[key]; ok { // read中不存在，但在dirty中（dirty还没往read中同步）
+		e.storeLocked(&value) // 填接存入值，此时值只存在于dirty中
+	} else { // 完全一个新值插入
 		if !read.amended {
 			// We're adding the first new key to the dirty map.
 			// Make sure it is allocated and mark the read-only map as incomplete.
-			m.dirtyLocked()
-			m.read.Store(readOnly{m: read.m, amended: true})
+			m.dirtyLocked()                                  // 第一次（或同步发后第一次）向dirty插入数据，需要初始化dirty
+			m.read.Store(readOnly{m: read.m, amended: true}) // 标记read有欠缺
 		}
-		m.dirty[key] = newEntry(value)
+		m.dirty[key] = newEntry(value) // dirty中插入一个新值
 	}
 	m.mu.Unlock()
 }
@@ -177,10 +177,10 @@ func (m *Map) Store(key, value any) {
 func (e *entry) tryStore(i *any) bool {
 	for {
 		p := atomic.LoadPointer(&e.p)
-		if p == expunged {
+		if p == expunged { // 如果数据已被擦除了，就不应该写到read中，所以返回false，转而插入dirty.
 			return false
 		}
-		if atomic.CompareAndSwapPointer(&e.p, p, unsafe.Pointer(i)) {
+		if atomic.CompareAndSwapPointer(&e.p, p, unsafe.Pointer(i)) { // 只是存入指针
 			return true
 		}
 	}
@@ -191,7 +191,7 @@ func (e *entry) tryStore(i *any) bool {
 // If the entry was previously expunged, it must be added to the dirty map
 // before m.mu is unlocked.
 func (e *entry) unexpungeLocked() (wasExpunged bool) {
-	return atomic.CompareAndSwapPointer(&e.p, expunged, nil)
+	return atomic.CompareAndSwapPointer(&e.p, expunged, nil) // 清除擦除痕迹
 }
 
 // storeLocked unconditionally stores a value to the entry.
@@ -276,12 +276,12 @@ func (e *entry) tryLoadOrStore(i any) (actual any, loaded, ok bool) {
 func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
 	read, _ := m.read.Load().(readOnly)
 	e, ok := read.m[key]
-	if !ok && read.amended {
+	if !ok && read.amended { // 如果不在read中，但dirty中可能有（那么接下来从dirty中尝试删除）
 		m.mu.Lock()
-		read, _ = m.read.Load().(readOnly)
+		read, _ = m.read.Load().(readOnly) // 再读一遍，防止待锁期间同步过
 		e, ok = read.m[key]
 		if !ok && read.amended {
-			e, ok = m.dirty[key]
+			e, ok = m.dirty[key] // 记录是否存在，以及传原始的值
 			delete(m.dirty, key)
 			// Regardless of whether the entry was present, record a miss: this key
 			// will take the slow path until the dirty map is promoted to the read
@@ -291,7 +291,7 @@ func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
 		m.mu.Unlock()
 	}
 	if ok {
-		return e.delete()
+		return e.delete() // 如果存在，就删除（清空value值，但槽位还在）
 	}
 	return nil, false
 }
@@ -307,7 +307,7 @@ func (e *entry) delete() (value any, ok bool) {
 		if p == nil || p == expunged {
 			return nil, false
 		}
-		if atomic.CompareAndSwapPointer(&e.p, p, nil) {
+		if atomic.CompareAndSwapPointer(&e.p, p, nil) { // 删除值
 			return *(*any)(p), true
 		}
 	}
@@ -357,25 +357,25 @@ func (m *Map) Range(f func(key, value any) bool) {
 	}
 }
 
-func (m *Map) missLocked() {
+func (m *Map) missLocked() { // 记录一次miss,以便触发从dirty向read同步
 	m.misses++
-	if m.misses < len(m.dirty) {
+	if m.misses < len(m.dirty) { // 如果miss数还不到dirty中的数据个数，啥也不干，只记录
 		return
 	}
-	m.read.Store(readOnly{m: m.dirty})
-	m.dirty = nil
+	m.read.Store(readOnly{m: m.dirty}) // 将dirty中的数据同步给read
+	m.dirty = nil                      // 置空dirty，省空间？
 	m.misses = 0
 }
 
-func (m *Map) dirtyLocked() {
-	if m.dirty != nil {
+func (m *Map) dirtyLocked() { // 如果dirty为空，以read初始化
+	if m.dirty != nil { // 如果dirty非空直接返回
 		return
 	}
 
 	read, _ := m.read.Load().(readOnly)
 	m.dirty = make(map[any]*entry, len(read.m))
-	for k, e := range read.m {
-		if !e.tryExpungeLocked() {
+	for k, e := range read.m { // 初始化dirty时，总是把read数据同步过来，以便下次整个以dirty覆盖read
+		if !e.tryExpungeLocked() { // 已经从read中擦除的数据就不要再同步给dirty了。
 			m.dirty[k] = e
 		}
 	}

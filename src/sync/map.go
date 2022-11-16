@@ -129,7 +129,7 @@ func (m *Map) Load(key any) (value any, ok bool) {
 	if !ok {
 		return nil, false
 	}
-	return e.load()
+	return e.load() // 虽然e存在，但不代表有值，有可能被擦除了。
 }
 
 func (e *entry) load() (value any, ok bool) {
@@ -291,7 +291,7 @@ func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
 		m.mu.Unlock()
 	}
 	if ok {
-		return e.delete() // 如果存在，就删除（清空value值，但槽位还在）
+		return e.delete() // 如果存在，就删除（将entry中的指针置为nil）,但entry还在
 	}
 	return nil, false
 }
@@ -381,7 +381,7 @@ func (m *Map) dirtyLocked() { // 如果dirty为空，以read初始化
 	}
 }
 
-func (e *entry) tryExpungeLocked() (isExpunged bool) {
+func (e *entry) tryExpungeLocked() (isExpunged bool) { // 测试值是否被擦除了，如果值压根不存在，就置为擦除
 	p := atomic.LoadPointer(&e.p)
 	for p == nil {
 		if atomic.CompareAndSwapPointer(&e.p, nil, expunged) {
